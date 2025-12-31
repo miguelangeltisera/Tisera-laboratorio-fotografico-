@@ -8,29 +8,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #fff7ed; /* Orange 50 */
+            background-color: #f97316; /* Orange 500 - Naranja vibrante solicitado */
+            background-image: radial-gradient(circle at 20% 20%, #fb923c 0%, transparent 40%), 
+                              radial-gradient(circle at 80% 80%, #ea580c 0%, transparent 40%);
             color: #431407; /* Orange 950 */
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.5s ease;
+            min-height: 100vh;
         }
         .glass {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(234, 88, 12, 0.15);
-            box-shadow: 0 20px 50px -12px rgba(154, 52, 18, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #fff7ed;
+            background: #ea580c;
         }
         ::-webkit-scrollbar-thumb {
-            background: #fb923c;
+            background: #fdba74;
             border-radius: 10px;
         }
-        .orange-gradient {
-            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+        .btn-premium {
+            background: linear-gradient(135deg, #431407 0%, #7c2d12 100%);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.2);
         }
     </style>
 <script type="importmap">
