@@ -4,42 +4,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIsera Photo Lab | Restauración HD</title>
+    <title>TIsera Photo Lab | Restauración Minimalista</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @font-face {
+            font-family: 'Helvetica';
+            src: local('Helvetica Light'), local('Helvetica-Light'), local('ArialMT'), local('Arial');
+            font-weight: 300;
+        }
+        
         body {
-            background-color: #f97316; /* Orange 500 - Naranja vibrante solicitado */
+            background-color: #f97316;
             background-image: radial-gradient(circle at 20% 20%, #fb923c 0%, transparent 40%), 
                               radial-gradient(circle at 80% 80%, #ea580c 0%, transparent 40%);
-            color: #431407; /* Orange 950 */
-            font-family: 'Inter', sans-serif;
+            color: #431407;
+            font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
             min-height: 100vh;
+            font-weight: 300;
         }
         .glass {
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
         }
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 4px;
         }
         ::-webkit-scrollbar-track {
             background: #ea580c;
         }
         ::-webkit-scrollbar-thumb {
-            background: #fdba74;
+            background: #000000;
             border-radius: 10px;
         }
-        .btn-premium {
-            background: linear-gradient(135deg, #431407 0%, #7c2d12 100%);
-            color: white;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-premium:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
-            filter: brightness(1.2);
+        h1, h2, h3, button, label {
+            font-weight: 300 !important;
+            letter-spacing: 0.02em;
         }
     </style>
 <script type="importmap">

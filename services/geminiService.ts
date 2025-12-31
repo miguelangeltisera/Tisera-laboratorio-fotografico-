@@ -8,8 +8,8 @@ export async function enhanceImage(
   userPrompt: string,
   aspectRatio: AspectRatio = "1:1"
 ): Promise<string> {
-  // Utilizamos la clave proporcionada por el usuario para asegurar funcionalidad inmediata
-  // Mantenemos process.env.API_KEY como fallback
+  // Priorizamos process.env.API_KEY porque es el que se actualiza si el usuario elige una clave en el diálogo
+  // La clave anterior queda como respaldo estático
   const apiKey = process.env.API_KEY || "AIzaSyBoes9G-zxPGTZ41D0pTHjwre3-j2dNKaU";
 
   const ai = new GoogleGenAI({ apiKey });
@@ -27,18 +27,15 @@ export async function enhanceImage(
             },
           },
           {
-            text: `PROTOCOLO DE RECONSTRUCCIÓN MAESTRA (Miguel Ángel Tisera Lab):
+            text: `PROTOCOLO DE RECONSTRUCCIÓN PROFESIONAL (Tisera Lab):
             
-            ACCIÓN SOLICITADA: ${userPrompt}.
+            ACCIÓN: ${userPrompt}.
             
-            ESTÁNDARES OBLIGATORIOS:
-            1. DEFINICIÓN ULTRA-HD: Reconstruye texturas, poros y detalles faciales con máxima nitidez. Elimina el ruido digital y el grano excesivo.
-            2. CALIBRACIÓN DE TONOS: Ajusta el balance de blancos, satura colores naturales y profundiza los negros. La imagen debe perder el tono "lavado".
-            3. SANACIÓN QUIRÚRGICA: Borra rayones, motas de polvo y grietas físicas.
-            4. ILUMINACIÓN PRO: Optimiza las sombras y luces para un acabado cinematográfico.
-            
-            FORMATO: ${aspectRatio}.
-            RESULTADO: Imagen de alta fidelidad visual lista para impresión profesional.`,
+            REGLAS TÉCNICAS:
+            1. DEFINICIÓN: Regenera texturas faciales y bordes con nitidez absoluta.
+            2. COLOR: Calibración vibrante y natural. Elimina el aspecto lavado.
+            3. LIMPIEZA: Borra rayones, motas y grietas físicas.
+            4. ACABADO: Master HD de alta fidelidad.`,
           },
         ],
       },
@@ -50,7 +47,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("El motor Gemini no pudo generar la imagen. Verifica el formato del archivo.");
+      throw new Error("El motor no pudo procesar la imagen debido a límites de seguridad o cuota.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -59,9 +56,10 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("No se recibió respuesta visual del servidor.");
+    throw new Error("Respuesta visual no recibida.");
   } catch (error: any) {
     console.error("Critical Engine Error:", error);
-    throw new Error("ERROR_LABORATORIO: " + (error.message || "Fallo en la conexión con la IA."));
+    // Propagamos el error para que App.tsx pueda identificar el 429
+    throw error;
   }
 }

@@ -17,5 +17,5 @@ export interface EnhancementHistory {
 
 export interface EnhancementConfig {
   aspectRatio: AspectRatio;
-  mode: 'standard' | 'restore' | 'resize' | 'artistic' | 'reconstruct';
+  mode: 'standard' | 'restore' | 'resize' | 'artistic' | 'reconstruct' | 'skin_restore' | 'detail_reconstruct';
 }
