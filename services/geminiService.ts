@@ -8,11 +8,9 @@ export async function enhanceImage(
   userPrompt: string,
   aspectRatio: AspectRatio = "1:1"
 ): Promise<string> {
-  const apiKey = process.env.API_KEY;
-
-  if (!apiKey || apiKey.length < 5) {
-    throw new Error("ERROR_SISTEMA: No se detectó la clave de API. Verifica la configuración en Netlify.");
-  }
+  // Utilizamos la clave proporcionada por el usuario para asegurar funcionalidad inmediata
+  // Mantenemos process.env.API_KEY como fallback
+  const apiKey = process.env.API_KEY || "AIzaSyBoes9G-zxPGTZ41D0pTHjwre3-j2dNKaU";
 
   const ai = new GoogleGenAI({ apiKey });
   const cleanedBase64 = base64Data.split(',')[1] || base64Data;
@@ -29,18 +27,18 @@ export async function enhanceImage(
             },
           },
           {
-            text: `PROTOCOLO DE RECONSTRUCCIÓN FORENSE (Miguel Ángel Tisera Lab):
+            text: `PROTOCOLO DE RECONSTRUCCIÓN MAESTRA (Miguel Ángel Tisera Lab):
             
-            OBJETIVO PRINCIPAL: ${userPrompt}.
+            ACCIÓN SOLICITADA: ${userPrompt}.
             
-            DIRECTRICES DE CALIDAD EXTREMA:
-            1. DEFINICIÓN CRISTALINA: Identifica zonas borrosas y regenera micro-detalles (piel, ojos, texturas) con nitidez absoluta.
-            2. CALIBRACIÓN TONAL: Elimina descoloramiento y recupera el rango dinámico. Colores vibrantes y profundos.
-            3. RECONSTRUCCIÓN: Sana grietas, rayones y áreas faltantes con coherencia visual lógica.
-            4. FIDELIDAD: El resultado debe parecer una fotografía moderna de alta resolución.
+            ESTÁNDARES OBLIGATORIOS:
+            1. DEFINICIÓN ULTRA-HD: Reconstruye texturas, poros y detalles faciales con máxima nitidez. Elimina el ruido digital y el grano excesivo.
+            2. CALIBRACIÓN DE TONOS: Ajusta el balance de blancos, satura colores naturales y profundiza los negros. La imagen debe perder el tono "lavado".
+            3. SANACIÓN QUIRÚRGICA: Borra rayones, motas de polvo y grietas físicas.
+            4. ILUMINACIÓN PRO: Optimiza las sombras y luces para un acabado cinematográfico.
             
-            FORMATO: Ajusta a ${aspectRatio}.
-            CALIDAD: 4K Master.`,
+            FORMATO: ${aspectRatio}.
+            RESULTADO: Imagen de alta fidelidad visual lista para impresión profesional.`,
           },
         ],
       },
@@ -52,7 +50,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("El motor no pudo procesar la imagen.");
+      throw new Error("El motor Gemini no pudo generar la imagen. Verifica el formato del archivo.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -61,9 +59,9 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("Imagen no generada por el motor.");
+    throw new Error("No se recibió respuesta visual del servidor.");
   } catch (error: any) {
-    console.error("Critical Lab Error:", error);
-    throw new Error("FALLO_MOTOR: " + (error.message || "Error desconocido."));
+    console.error("Critical Engine Error:", error);
+    throw new Error("ERROR_LABORATORIO: " + (error.message || "Fallo en la conexión con la IA."));
   }
 }
