@@ -11,7 +11,7 @@ export async function enhanceImage(
   const apiKey = process.env.API_KEY;
 
   if (!apiKey || apiKey.length < 5) {
-    throw new Error("API_KEY_MISSING: No se detectó la clave de API. Verifica la configuración en Netlify.");
+    throw new Error("API_KEY_MISSING: No se detectó la clave de API. Verifica la configuración de variables en Netlify.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -29,19 +29,19 @@ export async function enhanceImage(
             },
           },
           {
-            text: `PROTOCOLO DE RECONSTRUCCIÓN FORENSE (TIsera Master Lab):
+            text: `PROTOCOLO DE RECONSTRUCCIÓN FORENSE (Miguel Ángel Tisera Lab):
             
-            ACCIÓN: ${userPrompt}.
+            OBJETIVO PRINCIPAL: ${userPrompt}.
             
-            ESTÁNDARES DE ALTO RENDIMIENTO:
-            1. DEFINICIÓN EXTREMA: Localiza bordes borrosos y píxeles difusos. Regenera micro-texturas (pestañas, poros, fibras) con nitidez cristalina.
-            2. CALIBRACIÓN TONAL DE PROFUNDIDAD: Elimina el "velo" gris/amarillo. Recupera el rango dinámico con negros puros y blancos limpios.
-            3. RECONSTRUCCIÓN INTEGRAL: Si hay esquinas rotas o áreas faltantes, reconstrúyelas con coherencia visual absoluta basada en el entorno.
-            4. LIMPIEZA QUIRÚRGICA: Borra rayones, grietas de papel y manchas de humedad sin alterar el grano natural de la fotografía.
-            5. MEJORES TONOS DE PIEL: Asegura que los rostros recuperen su color natural y luz profesional.
-            6. FORMATO: Ajusta el resultado final a la relación de aspecto ${aspectRatio}.
+            DIRECTRICES CRÍTICAS PARA EL RESULTADO:
+            1. DEFINICIÓN EXTREMA: Identifica zonas borrosas y regenera los detalles (pestañas, textura de piel, tejidos) con nitidez microscópica.
+            2. CALIBRACIÓN TONAL PROFUNDA: Elimina neblinas, corrige el balance de blancos y recupera el rango dinámico original. Los colores deben ser vibrantes, naturales y profundos.
+            3. RECONSTRUCCIÓN FORENSE: Si hay bordes rotos o áreas faltantes, reconstrúyelas con coherencia absoluta basándote en la lógica visual de la escena.
+            4. LIMPIEZA DE SUPERFICIE: Borra quirúrgicamente rayones, motas de polvo y grietas físicas sin alterar el grano natural de la foto.
+            5. FIDELIDAD: El resultado final debe parecer una fotografía real capturada con equipo profesional moderno de alta resolución.
             
-            El resultado debe ser una imagen de resolución 4K lista para exposición.`,
+            FORMATO: Ajusta el resultado final a la relación de aspecto ${aspectRatio}.
+            CALIDAD: Genera una imagen impecable de resolución 4K.`,
           },
         ],
       },
@@ -53,7 +53,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("El motor no pudo procesar la imagen. Intenta con un archivo más pesado.");
+      throw new Error("La IA no pudo generar una reconstrucción válida. Prueba con una imagen menos dañada.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -62,12 +62,12 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("No se recibió el bloque visual de la IA.");
+    throw new Error("El bloque de imagen no se encontró en la respuesta del motor.");
   } catch (error: any) {
     console.error("Critical Lab Error:", error);
     if (error.status === 403 || error.message?.includes("key")) {
-      throw new Error("API_KEY_INVALID: La clave proporcionada no tiene permisos suficientes.");
+      throw new Error("API_KEY_INVALID: La clave configurada en Netlify no tiene permisos suficientes para el modelo Gemini 2.5 Flash Image.");
     }
-    throw new Error("FALLO_SISTEMA: " + (error.message || "Error desconocido."));
+    throw new Error("FALLO_CRÍTICO: " + (error.message || "Error desconocido en el motor de restauración."));
   }
 }
