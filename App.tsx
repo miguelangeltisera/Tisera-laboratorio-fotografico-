@@ -6,8 +6,7 @@ import { enhanceImage } from './services/geminiService.ts';
 import { ImageState, EnhancementHistory, AspectRatio, EnhancementConfig } from './types.ts';
 
 const App: React.FC = () => {
-  // Inicializamos en true si existe la clave en el entorno para evitar bloqueos innecesarios
-  const [hasKey, setHasKey] = useState<boolean>(!!process.env.API_KEY);
+  const [hasKey, setHasKey] = useState<boolean>(true); // Iniciamos en true para permitir flujo fluido
   const [imageState, setImageState] = useState<ImageState>({
     original: null,
     enhanced: null,
@@ -24,16 +23,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkKey = async () => {
-      // Si ya tenemos la clave por process.env, no hace falta validar más
-      if (process.env.API_KEY) {
-        setHasKey(true);
-        return;
-      }
-      
-      // Si estamos en un entorno con selector de claves (AI Studio / Netlify Plugin)
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected);
+        if (!selected && !process.env.API_KEY) {
+          setHasKey(false);
+        }
+      } else if (!process.env.API_KEY) {
+        setHasKey(false);
       }
     };
     checkKey();
@@ -42,10 +38,9 @@ const App: React.FC = () => {
   const handleOpenKeySelector = async () => {
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
       await window.aistudio.openSelectKey();
-      // Según reglas de race condition, asumimos éxito tras abrir el diálogo
-      setHasKey(true);
+      setHasKey(true); // Proceder tras el diálogo según guías de race condition
     } else {
-      setError("No se detectó API_KEY. Asegúrate de configurar el secreto 'API_KEY' en tu panel de control.");
+      setHasKey(true); // Forzar si no hay plugin para intentar usar process.env
     }
   };
 
@@ -61,14 +56,14 @@ const App: React.FC = () => {
 
     try {
       const modePrompts = {
-        reconstruct: "MODO RECONSTRUCCIÓN FORENSE: Tu prioridad absoluta es rellenar huecos, esquinas faltantes y áreas con daños severos. Crea contenido nuevo basado en el contexto. Si falta un ojo o parte de la cara, reconstrúyelo con anatomía perfecta.",
-        restore: "RESTAURACIÓN DE ALTA CALIDAD: Elimina rasguños profundos, manchas de humedad y grietas. Recupera la nitidez perdida y suaviza el grano sin perder detalle orgánico.",
-        resize: `EXPANSIÓN Y ESCALADO: Aumenta la resolución a 4K y expande la imagen al formato ${config.aspectRatio} generando nuevo contenido en los bordes.`,
-        artistic: "MEJORA TONAL Y CINEMÁTICA: Ajusta el balance de blancos, recupera colores vibrantes y aplica una iluminación de estudio profesional.",
-        standard: "MEJORA RÁPIDA: Optimización general de contraste y nitidez."
+        reconstruct: "MODO RECONSTRUCCIÓN AVANZADA: Tu misión es rellenar partes faltantes, esquinas rotas o áreas dañadas. Utiliza síntesis de imagen para crear contenido nuevo coherente. Mejora drásticamente la definición de rostros y texturas. Recupera tonos naturales eliminando el descoloramiento.",
+        restore: "RESTAURACIÓN CLÁSICA: Borra rayones, motas de polvo y grietas de papel. Suaviza el ruido pero mantén la nitidez de los bordes. Mejora el contraste y la viveza de los colores.",
+        resize: `ESCALADO HD: Aumenta la resolución y expande el lienzo a ${config.aspectRatio} generando fondo inteligente en los bordes nuevos.`,
+        artistic: "MEJORA CINEMÁTICA: Aplica gradación de color profesional, mejora la iluminación y dale un acabado de alta definición con mejores tonos de piel.",
+        standard: "OPTIMIZACIÓN GENERAL: Mejora brillo, contraste y nitidez estándar."
       };
 
-      const finalPrompt = customPrompt ? `${modePrompts[config.mode]} + Nota específica: ${customPrompt}` : modePrompts[config.mode];
+      const finalPrompt = customPrompt ? `${modePrompts[config.mode]} Instrucción adicional: ${customPrompt}` : modePrompts[config.mode];
       
       const enhancedBase64 = await enhanceImage(
         imageState.original, 
@@ -88,12 +83,10 @@ const App: React.FC = () => {
       };
       setHistory(prev => [newEntry, ...prev].slice(0, 8));
     } catch (err: any) {
-      if (err.message.includes("404") || err.message.includes("not found")) {
+      if (err.message.includes("API_KEY")) {
         setHasKey(false);
-        setError("La API Key parece no tener permisos para este modelo. Reintenta la selección.");
-      } else {
-        setError(err.message);
       }
+      setError(err.message || "Error inesperado en el procesamiento.");
     } finally {
       setIsProcessing(false);
     }
@@ -112,26 +105,20 @@ const App: React.FC = () => {
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-emerald-950 uppercase tracking-tighter">Laboratorio Bloqueado</h2>
+            <h2 className="text-3xl font-black text-emerald-950 uppercase tracking-tighter">Acceso Requerido</h2>
             <p className="text-emerald-800/70 text-sm">
-              No se ha detectado una API Key activa. Para usar la tecnología de restauración de Miguel Ángel Tisera, necesitas conectar una clave válida.
+              Para iniciar el laboratorio de restauración de Miguel Ángel Tisera, es necesario activar una clave de API válida.
             </p>
-          </div>
-          <div className="bg-white/50 p-4 rounded-2xl border border-emerald-100 text-[11px] text-left space-y-2">
-            <p className="font-bold text-emerald-900">Pasos para activar:</p>
-            <ol className="list-decimal list-inside text-emerald-700 space-y-1">
-              <li>Configura el secreto <code className="bg-emerald-100 px-1 rounded">API_KEY</code> en tu panel de control.</li>
-              <li>O pulsa el botón de abajo para seleccionar una clave de forma manual.</li>
-            </ol>
-            <p className="mt-2 opacity-60">Consulta la documentación de <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="underline">facturación</a> si es necesario.</p>
           </div>
           <button 
             onClick={handleOpenKeySelector} 
             className="w-full py-5 bg-emerald-600 text-white rounded-[1.5rem] font-black text-lg hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
           >
-            Activar Acceso IA
+            Activar Laboratorio
           </button>
-          {error && <p className="text-red-500 text-xs font-bold">{error}</p>}
+          <p className="text-[10px] text-emerald-900/40 uppercase tracking-widest font-bold">
+            Usa tu clave del proyecto de Google Cloud
+          </p>
         </div>
       </div>
     );
@@ -146,12 +133,12 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-emerald-950 uppercase">TIsera Photo Lab</h1>
-            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.4em]">Unidad de Restauración Forense</p>
+            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.4em]">Advanced Restoration Unit</p>
           </div>
         </div>
         
         {imageState.original && (
-          <button onClick={reset} className="px-10 py-4 rounded-[1.5rem] text-xs font-black border-2 border-emerald-100 bg-white hover:bg-emerald-50 text-emerald-950 transition-all active:scale-95 shadow-lg uppercase tracking-widest">Nueva Tarea</button>
+          <button onClick={reset} className="px-10 py-4 rounded-[1.5rem] text-xs font-black border-2 border-emerald-100 bg-white hover:bg-emerald-50 text-emerald-950 transition-all active:scale-95 shadow-lg uppercase tracking-widest">Nuevo Proyecto</button>
         )}
       </header>
 
@@ -160,10 +147,10 @@ const App: React.FC = () => {
           <div className="max-w-4xl mx-auto space-y-16">
             <div className="text-center space-y-6">
               <h2 className="text-6xl md:text-8xl font-black text-emerald-950 leading-[0.85] tracking-tighter">
-                Restaura y Sana <br/><span className="text-emerald-500">tus fotos</span>
+                Reconstruye y Mejora <br/><span className="text-emerald-500">tus recuerdos</span>
               </h2>
               <p className="text-emerald-800/60 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-                Tecnología de última generación para la eliminación de daños físicos, reconstrucción de bordes y mejora tonal de alta fidelidad.
+                Tecnología forense para sanar rayones, rellenar partes faltantes y mejorar la definición tonal con IA de vanguardia.
               </p>
             </div>
 
@@ -176,9 +163,9 @@ const App: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 pt-10">
                {[
-                 { title: "Sana Grietas", desc: "Algoritmos especializados en borrar rasguños y manchas de humedad.", icon: "🩹" },
-                 { title: "Reconstruye", desc: "Relleno contextual de partes faltantes con realismo absoluto.", icon: "🧩" },
-                 { title: "Definición Pro", desc: "Aumenta la resolución recuperando texturas y colores originales.", icon: "💎" }
+                 { title: "Sana Rayones", desc: "Elimina grietas, manchas y suciedad física sin alterar la textura original.", icon: "🩹" },
+                 { title: "Reconstruye", desc: "Relleno contextual de áreas faltantes con alta fidelidad anatómica.", icon: "🧩" },
+                 { title: "Mejores Tonos", desc: "Corrección de color y aumento de definición HD profesional.", icon: "💎" }
                ].map((f, i) => (
                  <div key={i} className="glass p-10 rounded-[2.5rem] border-b-[12px] border-emerald-600/10 hover:border-emerald-500 transition-all hover:-translate-y-2 group">
                    <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform">{f.icon}</div>
@@ -237,17 +224,17 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-950/30 ml-2">Observaciones Técnicas</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-950/30 ml-2">Instrucciones</label>
                   <textarea 
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     className="w-full h-32 px-6 py-5 bg-white border-2 border-emerald-100 rounded-[2rem] focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none resize-none text-sm placeholder:text-emerald-200 text-emerald-950 font-bold shadow-inner"
-                    placeholder="Ej: 'Rellenar esquinas rotas', 'Aclarar zona de la cara'..."
+                    placeholder="Ej: 'Dale más definición a los ojos', 'Rellena la esquina rota'..."
                   />
                 </div>
 
                 {error && (
-                  <div className="p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] text-red-600 text-xs font-black animate-shake flex items-center gap-4">
+                  <div className="p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] text-red-600 text-xs font-black animate-pulse flex items-center gap-4">
                     <div className="shrink-0 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg">!</div>
                     <span>{error}</span>
                   </div>
@@ -267,7 +254,7 @@ const App: React.FC = () => {
                   ) : (
                     <>
                       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                      <span>Ejecutar Proceso</span>
+                      <span>Procesar Imagen</span>
                     </>
                   )}
                 </button>
@@ -285,29 +272,28 @@ const App: React.FC = () => {
                        onClick={() => setImageState(prev => ({ ...prev, enhanced: null }))}
                        className="px-12 py-6 bg-white hover:bg-emerald-50 text-emerald-950 rounded-[2rem] font-black transition-all border-2 border-emerald-100 shadow-xl active:scale-95"
                      >
-                       Re-calibrar Parámetros
+                       Re-ajustar IA
                      </button>
                      <a 
                       href={imageState.enhanced} 
-                      download="tisera_lab_restored.png"
+                      download="tisera_restored_hd.png"
                       className="w-full sm:w-auto px-16 py-6 bg-emerald-950 text-white rounded-[2rem] font-black flex items-center justify-center gap-4 transition-all hover:bg-black shadow-2xl hover:scale-105 active:scale-95"
                     >
-                      <span>Descargar Imagen Final</span>
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      <span>Descargar Resultado</span>
                     </a>
                   </div>
                 </div>
               ) : (
-                <div className="relative aspect-[4/3] rounded-[4.5rem] overflow-hidden glass border-8 border-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] group bg-emerald-50/50">
-                  <img src={imageState.original} alt="Scan" className="w-full h-full object-contain opacity-30 blur-2xl group-hover:blur-xl transition-all duration-1000" />
+                <div className="relative aspect-[4/3] rounded-[4.5rem] overflow-hidden glass border-8 border-white shadow-2xl bg-emerald-50/30">
+                  <img src={imageState.original} alt="Scan" className="w-full h-full object-contain opacity-30 blur-2xl transition-all duration-1000" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8">
                     <div className="w-28 h-28 bg-emerald-600/10 rounded-full flex items-center justify-center border-4 border-emerald-600/30 animate-pulse">
                       <svg className="w-14 h-14 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                     </div>
                     <div className="space-y-4">
-                      <h3 className="text-4xl font-black text-emerald-950 tracking-tighter">Imagen Escaneada</h3>
+                      <h3 className="text-4xl font-black text-emerald-950 tracking-tighter uppercase">Imagen Detectada</h3>
                       <p className="text-emerald-800/60 max-w-sm font-bold text-lg leading-snug">
-                        Nuestra unidad Gemini 2.5 Flash está lista para procesar los pixeles. Haz clic en "Ejecutar Proceso" para comenzar.
+                        El sistema de visión de Miguel Ángel Tisera está listo. Haz clic en el botón para iniciar la reconstrucción.
                       </p>
                     </div>
                   </div>
@@ -316,7 +302,7 @@ const App: React.FC = () => {
 
               {history.length > 0 && (
                 <div className="space-y-6 pt-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.6em] text-emerald-950/20 ml-6">Sesión de Restauración</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.6em] text-emerald-950/20 ml-6">Laboratorio de Historial</h3>
                   <div className="flex gap-8 overflow-x-auto pb-8 px-6 scrollbar-hide">
                     {history.map(item => (
                       <button 
@@ -339,13 +325,13 @@ const App: React.FC = () => {
 
       <footer className="mt-40 py-20 w-full max-w-6xl border-t-4 border-emerald-100/40 flex flex-col md:flex-row justify-between items-center gap-12 text-emerald-900">
         <div className="flex flex-col items-center md:items-start space-y-4">
-          <p className="text-[11px] uppercase tracking-[0.7em] opacity-40 font-black">Contacto Profesional</p>
+          <p className="text-[11px] uppercase tracking-[0.7em] opacity-40 font-black">Soporte Técnico Especializado</p>
           <a href="mailto:miguelangeltisera@gmail.com" className="text-3xl font-black hover:text-emerald-600 transition-all active:scale-95 underline decoration-emerald-200 decoration-4 underline-offset-12">miguelangeltisera@gmail.com</a>
         </div>
         <div className="text-center md:text-right space-y-2 bg-white/40 p-8 rounded-[2rem] border border-emerald-50">
-          <p className="opacity-50 text-[11px] font-black uppercase tracking-[0.4em]">Laboratorio Tisera • Versión 3.5 Pro</p>
-          <p className="text-emerald-600 text-sm font-black">IA de Reconstrucción & Visión Forense</p>
-          <p className="opacity-30 text-[10px] font-bold italic tracking-tighter">© {new Date().getFullYear()} Preservación Digital de Recuerdos</p>
+          <p className="opacity-50 text-[11px] font-black uppercase tracking-[0.4em]">TIsera Photo Lab • v4.0 Ultra</p>
+          <p className="text-emerald-600 text-sm font-black">Powered by Gemini 2.5 Vision Engine</p>
+          <p className="opacity-30 text-[10px] font-bold italic tracking-tighter">© {new Date().getFullYear()} Preservación de Memorias Digitales</p>
         </div>
       </footer>
     </div>

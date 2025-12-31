@@ -8,16 +8,13 @@ export async function enhanceImage(
   userPrompt: string,
   aspectRatio: AspectRatio = "1:1"
 ): Promise<string> {
-  // Obtenemos la clave directamente del entorno en el momento de la llamada
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("API_KEY no detectada. Por favor, asegúrate de haber configurado el secreto 'API_KEY' en tu entorno de despliegue.");
+    throw new Error("API_KEY_MISSING: Por favor, asegúrate de haber configurado tu clave de API en el sistema.");
   }
 
-  // Instanciamos el cliente justo antes de usarlo para evitar race conditions con llaves seleccionadas
   const ai = new GoogleGenAI({ apiKey });
-  
   const cleanedBase64 = base64Data.split(',')[1] || base64Data;
 
   try {
@@ -32,18 +29,18 @@ export async function enhanceImage(
             },
           },
           {
-            text: `PROTOCOLO DE RECONSTRUCCIÓN FOTOGRÁFICA AVANZADA:
+            text: `PROTOCOLO FOTOGRÁFICO DE ALTA DEFINICIÓN:
             
-            ACCIÓN REQUERIDA: ${userPrompt}.
+            SOLICITUD: ${userPrompt}.
             
-            REGLAS DE LABORATORIO:
-            1. RECONSTRUCCIÓN CONTEXTUAL: Si detectas bordes faltantes, esquinas rotas o áreas negras, rellénalas basándote en el contenido circundante con una coherencia del 100%.
-            2. SANADO QUIRÚRGICO: Localiza y elimina grietas de papel, rayones profundos, polvo y manchas químicas. No borres detalles naturales de la imagen original.
-            3. MEJORA DE DEFINICIÓN HD: Refina los bordes, mejora la claridad de los ojos y la textura de la piel. Asegura que el resultado sea nítido y libre de desenfoque IA.
-            4. RECUPERACIÓN TONAL: Corrige la decoloración. Si la foto es antigua, recupera la riqueza de los negros y la naturalidad de los tonos de piel.
-            5. ADAPTACIÓN DE LIENZO: Ajusta el resultado al formato ${aspectRatio} reconstruyendo lo necesario.
+            REGLAS DE LABORATORIO TIsera:
+            1. RECONSTRUCCIÓN CONTEXTUAL: Si faltan partes de la imagen (bordes rotos, agujeros), reconstrúyelas de forma invisible utilizando el contexto circundante.
+            2. MEJORA DE DEFINICIÓN Y TONOS: Dale una definición extrema a los detalles (ojos, piel, texturas). Recupera la riqueza de los tonos, corrigiendo descoloramientos y balance de blancos.
+            3. SANADO DE DAÑOS: Elimina rayones, grietas, polvo y manchas químicas. No borres la textura natural de la fotografía.
+            4. FIDELIDAD: El resultado debe parecer una fotografía real capturada con una cámara moderna de alta resolución, manteniendo el estilo original.
+            5. FORMATO: Asegura que el resultado final respete la relación de aspecto ${aspectRatio}.
             
-            RESULTADO FINAL: Una restauración digna de museo, lista para impresión profesional.`,
+            Produce una imagen impecable de grado profesional.`,
           },
         ],
       },
@@ -55,7 +52,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("La IA no pudo procesar la reconstrucción. Intenta con una imagen más clara.");
+      throw new Error("La IA no pudo completar el proceso de reconstrucción. Intenta con una imagen diferente.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -64,15 +61,14 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("No se pudo extraer la imagen restaurada de la respuesta.");
+    throw new Error("No se detectó el componente visual en la respuesta de la IA.");
   } catch (error: any) {
-    console.error("Error en Gemini Service:", error);
+    console.error("Gemini Service Error:", error);
     
-    // Si el error es específicamente de falta de permisos o entidad no encontrada
     if (error.message?.includes("not found") || error.status === 404) {
-      throw new Error("La API Key no es válida para este modelo. Por favor, selecciona una clave de un proyecto de pago con Gemini 2.5 habilitado.");
+      throw new Error("API_KEY_INVALID: La clave proporcionada no es válida para el modelo Gemini 2.5 Flash Image.");
     }
     
-    throw new Error("Fallo en el laboratorio: " + (error.message || "Error desconocido durante la restauración"));
+    throw new Error("ERROR_LABORATORIO: " + (error.message || "Fallo en el procesado de imagen."));
   }
 }
