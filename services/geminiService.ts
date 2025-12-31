@@ -8,13 +8,16 @@ export async function enhanceImage(
   userPrompt: string,
   aspectRatio: AspectRatio = "1:1"
 ): Promise<string> {
+  // Obtenemos la clave directamente del entorno en el momento de la llamada
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    throw new Error("No se encontró la API_KEY. Por favor configura las variables de entorno en Netlify.");
+    throw new Error("API_KEY no detectada. Por favor, asegúrate de haber configurado el secreto 'API_KEY' en tu entorno de despliegue.");
   }
 
+  // Instanciamos el cliente justo antes de usarlo para evitar race conditions con llaves seleccionadas
   const ai = new GoogleGenAI({ apiKey });
+  
   const cleanedBase64 = base64Data.split(',')[1] || base64Data;
 
   try {
@@ -29,17 +32,18 @@ export async function enhanceImage(
             },
           },
           {
-            text: `Actúa como una IA de nivel forense especializada en restauración y reconstrucción fotográfica. 
-            OBJETIVO: ${userPrompt}.
+            text: `PROTOCOLO DE RECONSTRUCCIÓN FOTOGRÁFICA AVANZADA:
             
-            GUÍA TÉCNICA CRÍTICA:
-            1. RECONSTRUCCIÓN CONTEXTUAL: Si hay huecos, bordes faltantes o áreas severamente dañadas, rellénalos sintetizando nuevo contenido que mantenga la continuidad perfecta de la textura, iluminación y geometría original.
-            2. SANADO DE RASGUÑOS: Elimina quirúrgicamente cualquier elemento ajeno (pliegues, rayones, motas de polvo).
-            3. FIDELIDAD ESTRUCTURAL: Si reconstruyes rostros o elementos arquitectónicos, utiliza simetría y perspectiva lógica.
-            4. RESTAURACIÓN DE COLOR Y TONOS: Corrige el desvanecimiento químico (sepia, amarillo) y recupera la viveza natural.
-            5. FORMATO: Adapta el lienzo a ${aspectRatio} expandiendo el fondo de forma imperceptible si es necesario.
+            ACCIÓN REQUERIDA: ${userPrompt}.
             
-            Produce una imagen final en alta resolución con acabado profesional.`,
+            REGLAS DE LABORATORIO:
+            1. RECONSTRUCCIÓN CONTEXTUAL: Si detectas bordes faltantes, esquinas rotas o áreas negras, rellénalas basándote en el contenido circundante con una coherencia del 100%.
+            2. SANADO QUIRÚRGICO: Localiza y elimina grietas de papel, rayones profundos, polvo y manchas químicas. No borres detalles naturales de la imagen original.
+            3. MEJORA DE DEFINICIÓN HD: Refina los bordes, mejora la claridad de los ojos y la textura de la piel. Asegura que el resultado sea nítido y libre de desenfoque IA.
+            4. RECUPERACIÓN TONAL: Corrige la decoloración. Si la foto es antigua, recupera la riqueza de los negros y la naturalidad de los tonos de piel.
+            5. ADAPTACIÓN DE LIENZO: Ajusta el resultado al formato ${aspectRatio} reconstruyendo lo necesario.
+            
+            RESULTADO FINAL: Una restauración digna de museo, lista para impresión profesional.`,
           },
         ],
       },
@@ -51,7 +55,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("El sistema de IA no ha podido generar la imagen. Intenta con una descripción más detallada.");
+      throw new Error("La IA no pudo procesar la reconstrucción. Intenta con una imagen más clara.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -60,12 +64,15 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("No se recibió una imagen válida de la IA.");
+    throw new Error("No se pudo extraer la imagen restaurada de la respuesta.");
   } catch (error: any) {
-    console.error("Gemini Service Error:", error);
-    if (error.status === 403 || error.status === 401) {
-      throw new Error("Error de Autenticación: Verifica tu API Key en Netlify.");
+    console.error("Error en Gemini Service:", error);
+    
+    // Si el error es específicamente de falta de permisos o entidad no encontrada
+    if (error.message?.includes("not found") || error.status === 404) {
+      throw new Error("La API Key no es válida para este modelo. Por favor, selecciona una clave de un proyecto de pago con Gemini 2.5 habilitado.");
     }
-    throw error;
+    
+    throw new Error("Fallo en el laboratorio: " + (error.message || "Error desconocido durante la restauración"));
   }
 }
