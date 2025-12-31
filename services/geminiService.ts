@@ -10,8 +10,8 @@ export async function enhanceImage(
 ): Promise<string> {
   const apiKey = process.env.API_KEY;
 
-  if (!apiKey) {
-    throw new Error("API_KEY_MISSING: Por favor, asegúrate de haber configurado tu clave de API en el sistema.");
+  if (!apiKey || apiKey.length < 5) {
+    throw new Error("API_KEY_MISSING: No se detectó la clave de API. Verifica la configuración en Netlify.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -29,18 +29,19 @@ export async function enhanceImage(
             },
           },
           {
-            text: `PROTOCOLO FOTOGRÁFICO DE ALTA DEFINICIÓN:
+            text: `PROTOCOLO DE RECONSTRUCCIÓN FORENSE (TIsera Master Lab):
             
-            SOLICITUD: ${userPrompt}.
+            ACCIÓN: ${userPrompt}.
             
-            REGLAS DE LABORATORIO TIsera:
-            1. RECONSTRUCCIÓN CONTEXTUAL: Si faltan partes de la imagen (bordes rotos, agujeros), reconstrúyelas de forma invisible utilizando el contexto circundante.
-            2. MEJORA DE DEFINICIÓN Y TONOS: Dale una definición extrema a los detalles (ojos, piel, texturas). Recupera la riqueza de los tonos, corrigiendo descoloramientos y balance de blancos.
-            3. SANADO DE DAÑOS: Elimina rayones, grietas, polvo y manchas químicas. No borres la textura natural de la fotografía.
-            4. FIDELIDAD: El resultado debe parecer una fotografía real capturada con una cámara moderna de alta resolución, manteniendo el estilo original.
-            5. FORMATO: Asegura que el resultado final respete la relación de aspecto ${aspectRatio}.
+            ESTÁNDARES DE ALTO RENDIMIENTO:
+            1. DEFINICIÓN EXTREMA: Localiza bordes borrosos y píxeles difusos. Regenera micro-texturas (pestañas, poros, fibras) con nitidez cristalina.
+            2. CALIBRACIÓN TONAL DE PROFUNDIDAD: Elimina el "velo" gris/amarillo. Recupera el rango dinámico con negros puros y blancos limpios.
+            3. RECONSTRUCCIÓN INTEGRAL: Si hay esquinas rotas o áreas faltantes, reconstrúyelas con coherencia visual absoluta basada en el entorno.
+            4. LIMPIEZA QUIRÚRGICA: Borra rayones, grietas de papel y manchas de humedad sin alterar el grano natural de la fotografía.
+            5. MEJORES TONOS DE PIEL: Asegura que los rostros recuperen su color natural y luz profesional.
+            6. FORMATO: Ajusta el resultado final a la relación de aspecto ${aspectRatio}.
             
-            Produce una imagen impecable de grado profesional.`,
+            El resultado debe ser una imagen de resolución 4K lista para exposición.`,
           },
         ],
       },
@@ -52,7 +53,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("La IA no pudo completar el proceso de reconstrucción. Intenta con una imagen diferente.");
+      throw new Error("El motor no pudo procesar la imagen. Intenta con un archivo más pesado.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -61,14 +62,12 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("No se detectó el componente visual en la respuesta de la IA.");
+    throw new Error("No se recibió el bloque visual de la IA.");
   } catch (error: any) {
-    console.error("Gemini Service Error:", error);
-    
-    if (error.message?.includes("not found") || error.status === 404) {
-      throw new Error("API_KEY_INVALID: La clave proporcionada no es válida para el modelo Gemini 2.5 Flash Image.");
+    console.error("Critical Lab Error:", error);
+    if (error.status === 403 || error.message?.includes("key")) {
+      throw new Error("API_KEY_INVALID: La clave proporcionada no tiene permisos suficientes.");
     }
-    
-    throw new Error("ERROR_LABORATORIO: " + (error.message || "Fallo en el procesado de imagen."));
+    throw new Error("FALLO_SISTEMA: " + (error.message || "Error desconocido."));
   }
 }

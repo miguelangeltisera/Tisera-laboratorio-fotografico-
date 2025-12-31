@@ -4,20 +4,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIsera Photo Lab</title>
+    <title>TIsera Photo Lab | Restauración HD</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #ecfdf5; /* Emerald 50 - Verde claro */
-            color: #064e3b; /* Emerald 900 - Texto oscuro para contraste */
+            background-color: #fff7ed; /* Orange 50 */
+            color: #431407; /* Orange 950 */
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.5s ease;
         }
         .glass {
-            background: rgba(255, 255, 255, 0.7); /* Blanco traslúcido para fondo claro */
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(6, 78, 59, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(6, 78, 59, 0.05);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(234, 88, 12, 0.1);
+            box-shadow: 0 12px 40px 0 rgba(154, 52, 18, 0.05);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fff7ed;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fdba74;
+            border-radius: 10px;
         }
     </style>
 <script type="importmap">
@@ -35,7 +45,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Punto de entrada explícito para módulos ES -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>
