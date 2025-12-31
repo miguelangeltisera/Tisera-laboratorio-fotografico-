@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { AspectRatio } from "../types";
+import { AspectRatio } from "../types.ts";
 
 const API_KEY = process.env.API_KEY;
 
