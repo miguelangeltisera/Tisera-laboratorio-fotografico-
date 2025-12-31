@@ -1,16 +1,11 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import ImageUploader from './components/ImageUploader.tsx';
 import ComparisonSlider from './components/ComparisonSlider.tsx';
 import { enhanceImage } from './services/geminiService.ts';
 import { ImageState, EnhancementHistory, AspectRatio, EnhancementConfig } from './types.ts';
 
 const App: React.FC = () => {
-  // Inicializamos comprobando si existe la clave en el entorno global de Netlify
-  const [hasKey, setHasKey] = useState<boolean>(() => {
-    return !!(process.env.API_KEY && process.env.API_KEY.length > 10);
-  });
-  
   const [imageState, setImageState] = useState<ImageState>({
     original: null,
     enhanced: null,
@@ -24,39 +19,6 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<EnhancementHistory[]>([]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Si ya detectamos la clave en process.env, no hacemos nada más
-      if (hasKey) return;
-
-      // Si no, intentamos usar el puente de la plataforma aistudio
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-        try {
-          const selected = await window.aistudio.hasSelectedApiKey();
-          if (selected) setHasKey(true);
-        } catch (e) {
-          console.error("Error al verificar clave en plataforma", e);
-        }
-      }
-    };
-    checkAuth();
-  }, [hasKey]);
-
-  const handleOpenKeySelector = async () => {
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
-      try {
-        await window.aistudio.openSelectKey();
-        // Asumimos éxito inmediato según lineamientos para evitar race conditions
-        setHasKey(true);
-        setError(null);
-      } catch (e) {
-        setError("Error al abrir el selector. Verifica las variables en Netlify.");
-      }
-    } else {
-      setError("Variable API_KEY no detectada. Asegúrate de que en Netlify el nombre sea API_KEY.");
-    }
-  };
 
   const handleImageSelected = useCallback((base64: string, mimeType: string) => {
     setImageState({ original: base64, enhanced: null, mimeType: mimeType });
@@ -78,7 +40,7 @@ const App: React.FC = () => {
       };
 
       const finalPrompt = customPrompt 
-        ? `${modePrompts[config.mode]}. Instrucciones específicas del usuario: ${customPrompt}` 
+        ? `${modePrompts[config.mode]}. Instrucciones adicionales: ${customPrompt}` 
         : modePrompts[config.mode];
       
       const enhancedBase64 = await enhanceImage(
@@ -99,13 +61,7 @@ const App: React.FC = () => {
       };
       setHistory(prev => [newEntry, ...prev].slice(0, 8));
     } catch (err: any) {
-      if (err.message.includes("API_KEY") || err.message.includes("403") || err.message.includes("key")) {
-        // No bloqueamos inmediatamente con la pantalla de acceso si falló un intento
-        // pero mostramos un error claro para el usuario.
-        setError("Error de Clave: " + err.message);
-      } else {
-        setError(err.message || "Error procesando la imagen.");
-      }
+      setError(err.message || "Error inesperado en el motor de IA.");
     } finally {
       setIsProcessing(false);
     }
@@ -115,42 +71,6 @@ const App: React.FC = () => {
     setImageState({ original: null, enhanced: null, mimeType: null });
     setError(null);
   };
-
-  if (!hasKey) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="glass p-12 rounded-[3.5rem] max-w-lg w-full text-center space-y-10 shadow-2xl">
-          <div className="w-24 h-24 bg-orange-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg animate-pulse">
-            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-4xl font-black text-orange-950 uppercase tracking-tighter">Acceso Requerido</h2>
-            <p className="text-orange-900/80 text-sm font-bold leading-relaxed">
-              El laboratorio de Miguel Ángel Tisera está listo. <br/>
-              Si ya configuraste tu clave en Netlify, asegúrate de haber redeplegado tu aplicación.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <button 
-              onClick={handleOpenKeySelector} 
-              className="w-full py-6 btn-premium rounded-[2rem] font-black text-xl active:scale-95 shadow-2xl"
-            >
-              Vincular Manualmente
-            </button>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="w-full py-4 bg-white/50 text-orange-950 rounded-[1.5rem] font-black text-sm hover:bg-white/80 transition-all border border-white/40"
-            >
-              Refrescar Laboratorio
-            </button>
-          </div>
-          <div className="pt-6 border-t border-orange-200 text-[10px] text-orange-900/60 uppercase tracking-[0.3em] font-black">
-            Variable esperada: API_KEY
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4 md:p-8 selection:bg-orange-300">
@@ -166,31 +86,31 @@ const App: React.FC = () => {
         </div>
         
         {imageState.original && (
-          <button onClick={reset} className="px-10 py-4 rounded-[1.5rem] text-xs font-black border-2 border-white/40 bg-white/20 hover:bg-white/40 text-white backdrop-blur-md transition-all active:scale-95 shadow-lg uppercase tracking-widest">Nuevo Escaneo</button>
+          <button onClick={reset} className="px-10 py-4 rounded-[1.5rem] text-xs font-black border-2 border-white/40 bg-white/20 hover:bg-white/40 text-white backdrop-blur-md transition-all active:scale-95 shadow-lg uppercase tracking-widest">Nueva Restauración</button>
         )}
       </header>
 
       <main className="w-full max-w-6xl flex-grow pb-24">
         {!imageState.original ? (
           <div className="max-w-4xl mx-auto space-y-24">
-            <div className="text-center space-y-8">
+            <div className="text-center space-y-8 animate-in fade-in slide-in-from-top-10 duration-1000">
               <h2 className="text-7xl md:text-9xl font-black text-white leading-[0.8] tracking-tighter drop-shadow-2xl">
                 Más definición <br/><span className="text-orange-950/40">mejores tonos</span>
               </h2>
               <p className="text-white font-bold text-xl max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-                Tecnología de última generación para sanar texturas y calibrar colores. Devuelve la vida a tus memorias.
+                Tecnología IA para sanar texturas y calibrar colores. Devuelve la vida a tus memorias con calidad profesional inmediata.
               </p>
             </div>
 
-            <div className="glass p-2 rounded-[4rem]">
+            <div className="glass p-2 rounded-[4rem] shadow-2xl animate-in zoom-in-95 duration-1000 delay-200">
                <ImageUploader onImageSelected={handleImageSelected} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500">
                {[
-                 { title: "Definición HD", desc: "Regenera pestañas, piel y detalles con nitidez microscópica.", icon: "💎" },
-                 { title: "Tonos Pro", desc: "Elimina el desvanecimiento y recupera la viveza original.", icon: "🎨" },
-                 { title: "Sana Daños", desc: "Borra quirúrgicamente grietas y motas de polvo.", icon: "🩹" }
+                 { title: "Definición HD", desc: "Regenera detalles microscópicos en piel y tejidos.", icon: "💎" },
+                 { title: "Tonos Pro", desc: "Recupera la viveza del color y el balance original.", icon: "🎨" },
+                 { title: "Sana Daños", desc: "Borra rayones y grietas físicas sin dejar rastro.", icon: "🩹" }
                ].map((f, i) => (
                  <div key={i} className="glass p-10 rounded-[3.5rem] border-b-[8px] border-orange-600 transition-all hover:-translate-y-2 group">
                    <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-500">{f.icon}</div>
@@ -205,13 +125,13 @@ const App: React.FC = () => {
             <div className="lg:col-span-4 space-y-8">
               <div className="glass p-8 rounded-[3rem] space-y-8 border-white/60">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.5em] text-orange-950/40 ml-2">Modo de Procesado</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.5em] text-orange-950/40 ml-2">Protocolo</label>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { id: 'reconstruct', label: 'Maestro', icon: '🧩' },
                       { id: 'restore', label: 'Sanar', icon: '🩹' },
                       { id: 'resize', label: 'Escalar', icon: '📐' },
-                      { id: 'artistic', label: 'Tonal Pro', icon: '🎞️' }
+                      { id: 'artistic', label: 'Tonal', icon: '🎞️' }
                     ].map(mode => (
                       <button
                         key={mode.id}
@@ -254,7 +174,7 @@ const App: React.FC = () => {
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     className="w-full h-24 px-5 py-4 bg-white/60 border border-white/40 rounded-[2rem] focus:ring-4 focus:ring-orange-500/20 transition-all outline-none resize-none text-sm text-orange-950 font-bold placeholder:text-orange-900/30"
-                    placeholder="Ej: 'Aumentar definición en los ojos'..."
+                    placeholder="Ej: 'Más brillo en el rostro'..."
                   />
                 </div>
 
@@ -268,7 +188,7 @@ const App: React.FC = () => {
                 <button
                   disabled={isProcessing}
                   onClick={handleEnhance}
-                  className={`w-full py-6 btn-premium rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-4 transition-all ${
+                  className={`w-full py-6 bg-orange-950 hover:bg-black text-white rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-4 transition-all shadow-2xl ${
                     isProcessing ? 'opacity-50 cursor-not-allowed scale-95' : 'active:scale-95'
                   }`}
                 >
@@ -277,7 +197,7 @@ const App: React.FC = () => {
                   ) : (
                     <>
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                      <span>Restaurar Ahora</span>
+                      <span>Procesar Imagen</span>
                     </>
                   )}
                 </button>
@@ -299,8 +219,8 @@ const App: React.FC = () => {
                      </button>
                      <a 
                       href={imageState.enhanced} 
-                      download="tisera_final_hd.png"
-                      className="w-full sm:w-auto px-16 py-5 btn-premium rounded-[2rem] font-black flex items-center justify-center gap-4 active:scale-95 text-xs uppercase tracking-widest"
+                      download="tisera_restaurada.png"
+                      className="w-full sm:w-auto px-16 py-5 bg-orange-950 text-white rounded-[2rem] font-black flex items-center justify-center gap-4 active:scale-95 text-xs uppercase tracking-widest shadow-xl hover:bg-black"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                       <span>Descargar HD</span>
@@ -308,7 +228,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="relative aspect-video rounded-[4rem] overflow-hidden glass border-8 border-white/60 bg-white/20 group">
+                <div className="relative aspect-video rounded-[4rem] overflow-hidden glass border-8 border-white/60 bg-white/20 group shadow-2xl">
                   <img src={imageState.original} alt="Analizando" className="w-full h-full object-contain opacity-40 blur-2xl transition-all duration-1000" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8">
                     <div className="w-24 h-24 bg-orange-600/20 rounded-full flex items-center justify-center border-4 border-orange-600/40 animate-pulse">
@@ -317,7 +237,7 @@ const App: React.FC = () => {
                     <div className="space-y-4">
                       <h3 className="text-4xl font-black text-orange-950 tracking-tighter uppercase leading-tight">Sistema Tisera listo</h3>
                       <p className="text-orange-900/60 max-w-sm font-bold text-lg leading-relaxed mx-auto">
-                        Imagen cargada correctamente. Elige el motor y pulsa el botón para iniciar la restauración.
+                        Selecciona el modo de restauración y pulsa el botón negro para iniciar.
                       </p>
                     </div>
                   </div>
@@ -328,7 +248,7 @@ const App: React.FC = () => {
                 <div className="space-y-6 pt-10">
                   <div className="flex items-center gap-4">
                     <div className="h-[1px] flex-grow bg-white/30"></div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/60">Historial de Sesión</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/60">Historial de Laboratorio</h3>
                     <div className="h-[1px] flex-grow bg-white/30"></div>
                   </div>
                   <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
@@ -351,15 +271,15 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="mt-auto py-16 w-full max-w-6xl border-t border-white/20 flex flex-col md:flex-row justify-between items-center gap-10">
+      <footer className="mt-auto py-16 w-full max-w-6xl border-t border-white/20 flex flex-col md:flex-row justify-between items-center gap-10 text-white">
         <div className="flex flex-col items-center md:items-start space-y-4">
-          <p className="text-[10px] uppercase tracking-[0.6em] text-white/50 font-black">Contacto Lab</p>
-          <a href="mailto:miguelangeltisera@gmail.com" className="text-3xl font-black text-white hover:text-orange-950 transition-all tracking-tighter decoration-orange-950/20 decoration-4 underline underline-offset-8">miguelangeltisera@gmail.com</a>
+          <p className="text-[10px] uppercase tracking-[0.6em] text-white/50 font-black">Línea de Soporte</p>
+          <a href="mailto:miguelangeltisera@gmail.com" className="text-3xl font-black hover:text-orange-950 transition-all tracking-tighter decoration-white/20 decoration-4 underline underline-offset-8">miguelangeltisera@gmail.com</a>
         </div>
         <div className="text-center md:text-right space-y-2">
-          <p className="text-white font-black text-sm uppercase tracking-widest">TIsera Lab • Platinum v8.0</p>
-          <p className="text-white/60 text-[10px] font-bold">Impulsado por Gemini 2.5 Vision AI</p>
-          <p className="text-white/30 text-[9px] font-bold">© {new Date().getFullYear()} Especialistas en Restauración</p>
+          <p className="font-black text-sm uppercase tracking-widest">TIsera Lab • v9.0 Pro</p>
+          <p className="text-white/60 text-[10px] font-bold">Powered by Gemini 2.5 Vision AI</p>
+          <p className="text-white/30 text-[9px] font-bold">© {new Date().getFullYear()} Soluciones Digitales Tisera</p>
         </div>
       </footer>
     </div>

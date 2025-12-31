@@ -11,7 +11,7 @@ export async function enhanceImage(
   const apiKey = process.env.API_KEY;
 
   if (!apiKey || apiKey.length < 5) {
-    throw new Error("API_KEY_MISSING: No se detectó la clave de API. Verifica la configuración de variables en Netlify.");
+    throw new Error("ERROR_SISTEMA: No se detectó la clave de API. Verifica la configuración en Netlify.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -33,15 +33,14 @@ export async function enhanceImage(
             
             OBJETIVO PRINCIPAL: ${userPrompt}.
             
-            DIRECTRICES CRÍTICAS PARA EL RESULTADO:
-            1. DEFINICIÓN EXTREMA: Identifica zonas borrosas y regenera los detalles (pestañas, textura de piel, tejidos) con nitidez microscópica.
-            2. CALIBRACIÓN TONAL PROFUNDA: Elimina neblinas, corrige el balance de blancos y recupera el rango dinámico original. Los colores deben ser vibrantes, naturales y profundos.
-            3. RECONSTRUCCIÓN FORENSE: Si hay bordes rotos o áreas faltantes, reconstrúyelas con coherencia absoluta basándote en la lógica visual de la escena.
-            4. LIMPIEZA DE SUPERFICIE: Borra quirúrgicamente rayones, motas de polvo y grietas físicas sin alterar el grano natural de la foto.
-            5. FIDELIDAD: El resultado final debe parecer una fotografía real capturada con equipo profesional moderno de alta resolución.
+            DIRECTRICES DE CALIDAD EXTREMA:
+            1. DEFINICIÓN CRISTALINA: Identifica zonas borrosas y regenera micro-detalles (piel, ojos, texturas) con nitidez absoluta.
+            2. CALIBRACIÓN TONAL: Elimina descoloramiento y recupera el rango dinámico. Colores vibrantes y profundos.
+            3. RECONSTRUCCIÓN: Sana grietas, rayones y áreas faltantes con coherencia visual lógica.
+            4. FIDELIDAD: El resultado debe parecer una fotografía moderna de alta resolución.
             
-            FORMATO: Ajusta el resultado final a la relación de aspecto ${aspectRatio}.
-            CALIDAD: Genera una imagen impecable de resolución 4K.`,
+            FORMATO: Ajusta a ${aspectRatio}.
+            CALIDAD: 4K Master.`,
           },
         ],
       },
@@ -53,7 +52,7 @@ export async function enhanceImage(
     });
 
     if (!response.candidates?.[0]?.content?.parts) {
-      throw new Error("La IA no pudo generar una reconstrucción válida. Prueba con una imagen menos dañada.");
+      throw new Error("El motor no pudo procesar la imagen.");
     }
 
     for (const part of response.candidates[0].content.parts) {
@@ -62,12 +61,9 @@ export async function enhanceImage(
       }
     }
 
-    throw new Error("El bloque de imagen no se encontró en la respuesta del motor.");
+    throw new Error("Imagen no generada por el motor.");
   } catch (error: any) {
     console.error("Critical Lab Error:", error);
-    if (error.status === 403 || error.message?.includes("key")) {
-      throw new Error("API_KEY_INVALID: La clave configurada en Netlify no tiene permisos suficientes para el modelo Gemini 2.5 Flash Image.");
-    }
-    throw new Error("FALLO_CRÍTICO: " + (error.message || "Error desconocido en el motor de restauración."));
+    throw new Error("FALLO_MOTOR: " + (error.message || "Error desconocido."));
   }
 }
